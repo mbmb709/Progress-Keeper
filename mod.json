@@ -1,0 +1,19 @@
+{
+  "geode": "5.8.2",
+  "gd": {
+    "win": "2.2081",
+    "android": "2.2081",
+    "mac": "2.2081",
+    "ios": "2.2081"
+  },
+  "id": "mbmb709.progress-keeper",
+  "name": "Progress Keeper",
+  "version": "v1.0.0",
+  "developer": "mbmb709",
+  "description": "Create immediate local backups or schedule them by seconds, minutes, or hours from a draggable floating button.",
+  "tags": [
+    "utility",
+    "interface",
+    "offline"
+  ]
+}
