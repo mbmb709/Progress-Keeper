@@ -39,6 +39,8 @@ jobs:
     steps:
       - uses: geode-sdk/build-geode-mod/combine@main
         id: combine
+        with:
+          zstd: false
       - uses: actions/upload-artifact@v4
         with:
           name: Selected-Object-Coordinates-Geode
