@@ -1,5 +1,6 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/EditorUI.hpp>
+#include <Geode/ui/BasedButtonSprite.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -10,17 +11,37 @@ using namespace geode::prelude;
 
 namespace {
 constexpr float kGridSize = 30.f;
+constexpr float kCameraOffsetScale = 3.f; // GD world units / 3 = Camera Offset values
 
-// The Geometry Dash object position is the CENTER / anchor, in level units.
-// One editor grid cell is 30 GD units, but grid indices are not the same as X/Y.
 class SelectedCoordinatesHUD final : public CCNode {
     EditorUI* m_editorUI = nullptr;
-    CCLabelBMFont* m_world = nullptr;
-    CCLabelBMFont* m_grid = nullptr;
-    CCLabelBMFont* m_cell = nullptr;
+    CCLabelBMFont* m_worldLabel = nullptr;
+    CCLabelBMFont* m_gridLabel = nullptr;
+    CCLabelBMFont* m_cellLabel = nullptr;
+    CCLabelBMFont* m_cameraLabel = nullptr;
     std::string m_lastWorld;
     std::string m_lastGrid;
     std::string m_lastCell;
+    std::string m_lastCamera;
+    bool m_hasReference = false;
+    CCPoint m_reference = {0.f, 0.f};
+
+    std::vector<GameObject*> selection() const {
+        std::vector<GameObject*> objects;
+        if (!m_editorUI) return objects;
+
+        if (auto* obj = m_editorUI->m_selectedObject) {
+            objects.push_back(obj);
+        }
+        if (auto* arr = m_editorUI->m_selectedObjects) {
+            for (auto* obj : CCArrayExt<GameObject*>(arr)) {
+                if (obj && std::find(objects.begin(), objects.end(), obj) == objects.end()) {
+                    objects.push_back(obj);
+                }
+            }
+        }
+        return objects;
+    }
 
     static CCLabelBMFont* makeLabel(char const* id, float x, float y, float scale) {
         auto* label = CCLabelBMFont::create("", "bigFont.fnt");
@@ -42,6 +63,22 @@ class SelectedCoordinatesHUD final : public CCNode {
         }
     }
 
+    void onSetReference(CCObject*) {
+        auto const selected = selection();
+        if (selected.size() != 1) {
+            Notification::create("Select ONE reference object", NotificationIcon::Warning, 2.f)->show();
+            return;
+        }
+        m_reference = selected.front()->getPosition();
+        m_hasReference = true;
+        Notification::create("Reference saved. Select destination.", NotificationIcon::Success, 2.f)->show();
+    }
+
+    void onClearReference(CCObject*) {
+        m_hasReference = false;
+        Notification::create("Camera reference cleared", NotificationIcon::Info, 1.5f)->show();
+    }
+
 public:
     static SelectedCoordinatesHUD* create(EditorUI* ui) {
         auto* hud = new SelectedCoordinatesHUD();
@@ -60,61 +97,89 @@ public:
 
         auto const screen = CCDirector::sharedDirector()->getWinSize();
         auto const x = screen.width / 2.f;
-        m_world = makeLabel("world-coordinates", x, screen.height - 19.f, .40f);
-        m_grid = makeLabel("grid-coordinates", x, screen.height - 31.f, .32f);
-        m_cell = makeLabel("cell-coordinates", x, screen.height - 42.f, .28f);
-        if (!m_world || !m_grid || !m_cell) return false;
+        m_worldLabel  = makeLabel("gd-coordinates", x, screen.height - 17.f, .36f);
+        m_gridLabel   = makeLabel("grid-coordinates", x, screen.height - 29.f, .30f);
+        m_cellLabel   = makeLabel("cell-coordinates", x, screen.height - 40.f, .28f);
+        m_cameraLabel = makeLabel("camera-offset-values", x, screen.height - 52.f, .33f);
+        if (!m_worldLabel || !m_gridLabel || !m_cellLabel || !m_cameraLabel) return false;
 
-        addChild(m_world);
-        addChild(m_grid);
-        addChild(m_cell);
+        addChild(m_worldLabel);
+        addChild(m_gridLabel);
+        addChild(m_cellLabel);
+        addChild(m_cameraLabel);
+
+        auto* menu = CCMenu::create();
+        if (!menu) return false;
+        menu->setPosition({0.f, 0.f});
+        menu->setID("coordinate-controls"_spr);
+
+        auto* setSprite = ButtonSprite::create(
+            "Set Ref", 80, true, "goldFont.fnt", "GJ_button_01.png", 0.f, .63f
+        );
+        auto* clearSprite = ButtonSprite::create(
+            "Clear Ref", 80, true, "goldFont.fnt", "GJ_button_04.png", 0.f, .63f
+        );
+        auto* setButton = CCMenuItemSpriteExtra::create(
+            setSprite, this, menu_selector(SelectedCoordinatesHUD::onSetReference)
+        );
+        auto* clearButton = CCMenuItemSpriteExtra::create(
+            clearSprite, this, menu_selector(SelectedCoordinatesHUD::onClearReference)
+        );
+        setButton->setPosition({55.f, screen.height - 18.f});
+        clearButton->setPosition({55.f, screen.height - 49.f});
+        setButton->setID("set-reference-button"_spr);
+        clearButton->setID("clear-reference-button"_spr);
+        menu->addChild(setButton);
+        menu->addChild(clearButton);
+        addChild(menu, 5);
+
         scheduleUpdate();
         return true;
     }
 
     void update(float) override {
-        if (!m_editorUI) return;
-
-        // A lone selected object may be in m_selectedObject or m_selectedObjects.
-        // Some editor states keep the SAME pointer in both. Count UNIQUE objects.
-        std::vector<GameObject*> selected;
-        if (auto* obj = m_editorUI->m_selectedObject) selected.push_back(obj);
-        if (auto* arr = m_editorUI->m_selectedObjects) {
-            for (auto* obj : CCArrayExt<GameObject*>(arr)) {
-                if (obj && std::find(selected.begin(), selected.end(), obj) == selected.end()) {
-                    selected.push_back(obj);
-                }
-            }
-        }
-
+        auto const selected = selection();
         if (selected.empty()) {
-            setLabel(m_world, "", m_lastWorld);
-            setLabel(m_grid, "", m_lastGrid);
-            setLabel(m_cell, "", m_lastCell);
+            setLabel(m_worldLabel, "", m_lastWorld);
+            setLabel(m_gridLabel, "", m_lastGrid);
+            setLabel(m_cellLabel, "", m_lastCell);
+            setLabel(m_cameraLabel, m_hasReference ? "Reference saved - select destination" : "", m_lastCamera);
             return;
         }
 
         if (selected.size() != 1) {
-            setLabel(m_world, fmt::format("{} objects selected", selected.size()), m_lastWorld);
-            setLabel(m_grid, "Select one object for X / Y", m_lastGrid);
-            setLabel(m_cell, "", m_lastCell);
+            setLabel(m_worldLabel, fmt::format("{} objects selected", selected.size()), m_lastWorld);
+            setLabel(m_gridLabel, "", m_lastGrid);
+            setLabel(m_cellLabel, "", m_lastCell);
+            setLabel(m_cameraLabel, "Select one object", m_lastCamera);
             return;
         }
 
-        // This is the saved coordinate system for Geometry Dash level objects,
-        // not a position converted from the camera / editor screen.
+        // World coordinates: actual object anchor/center in the Geometry Dash level.
         CCPoint const p = selected.front()->getPosition();
         float const bx = p.x / kGridSize;
         float const by = p.y / kGridSize;
-
-        // A CELL is numbered 1-based, left-to-right and bottom-to-top.
-        // A regular 30x30 block with its center at X=15,Y=15 is in cell 1,1.
         int const cellX = static_cast<int>(std::floor(bx)) + 1;
         int const cellY = static_cast<int>(std::floor(by)) + 1;
 
-        setLabel(m_world, fmt::format("GD X: {:.2f}    Y: {:.2f}", p.x, p.y), m_lastWorld);
-        setLabel(m_grid, fmt::format("Grid X: {:.3f}    Y: {:.3f} blocks", bx, by), m_lastGrid);
-        setLabel(m_cell, fmt::format("Cell X: {}    Y: {}", cellX, cellY), m_lastCell);
+        setLabel(m_worldLabel, fmt::format("GD X: {:.2f}   Y: {:.2f}", p.x, p.y), m_lastWorld);
+        setLabel(m_gridLabel, fmt::format("Grid X: {:.3f}  Y: {:.3f}", bx, by), m_lastGrid);
+        setLabel(m_cellLabel, fmt::format("Cell X: {}  Y: {}", cellX, cellY), m_lastCell);
+
+        if (m_hasReference) {
+            // Camera Offset is relative to the DEFAULT camera center at activation.
+            // Mark an object placed at that center as the reference; then select a
+            // destination at the desired center and enter this delta into the trigger.
+            float const offsetX = (p.x - m_reference.x) / kCameraOffsetScale;
+            float const offsetY = (p.y - m_reference.y) / kCameraOffsetScale;
+            setLabel(
+                m_cameraLabel,
+                fmt::format("Camera OFFSET X: {:.2f}  Y: {:.2f}", offsetX, offsetY),
+                m_lastCamera
+            );
+        } else {
+            setLabel(m_cameraLabel, "Camera OFFSET: first Set Ref", m_lastCamera);
+        }
     }
 };
 }

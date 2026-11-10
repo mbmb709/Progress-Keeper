@@ -1,18 +1,21 @@
-# Selected Object Coordinates v1.1.0
+# Selected Object Coordinates v1.2.0
 
-Geode HUD for the Geometry Dash level editor.
+## Object position
+- **GD X/Y**: coordinates of the object's center/anchor in level units (30 units per block).
+- **Grid X/Y**: 30-unit grid coordinates.
+- **Cell X/Y**: 1-based indices of the 30-unit cell.
 
-Select one object to see three distinct coordinate systems:
-- **GD X/Y**: the object's actual level-space center/anchor in Geometry Dash units. This is *not* a screen coordinate.
-- **Grid X/Y**: GD X/Y divided by 30, for blocks of 30 units.
-- **Cell X/Y**: 1-based grid cell numbers, from the level's X/Y origin.
+## Camera OFFSET trigger calculator
+The **Camera Offset** trigger uses 10 per block, but level coordinates use 30 per block. Its values describe the camera's **relative displacement from the default camera center at trigger activation**, not the absolute world-space location.
 
-Examples:
-- An ordinary block centered at (15,15) displays `GD X: 15 Y: 15`, `Grid X: 0.5 Y: 0.5` and `Cell X: 1 Y: 1`.
-- Moving the object +30 units to the right updates GD X by +30, Grid X by +1, and Cell X by +1 (for standard block centers).
+1. Place or choose a marker object at the position the camera **normally centers on** at the point the trigger activates.
+2. Select that reference object and click **Set Ref**.
+3. Select the object at the camera center you WANT.
+4. Read **Camera OFFSET X/Y**. The mod calculates `(destination - reference) / 3` for each axis.
+5. Enter those two numbers into the **Camera Offset** trigger. If your current camera center is not accurately represented by the reference marker (due to player tracking, zoom, static cameras, or other camera triggers), the result will not correspond to the desired absolute screen center.
 
-Values update automatically when the object moves. Deselect to hide the HUD. Multi-selection shows a count.
+Select **Clear Ref** to reset. The reference is scoped to the editor session and is saved by coordinates rather than an object pointer. The HUD does not change the trigger; it just calculates values.
 
-Fixes in v1.1.0: deduplicates object pointers in the two selection fields; explicitly labels GD, grid and cell coordinates to avoid unit confusion.
+**Important:** This is NOT a direct absolute X/Y to Camera Offset conversion. A camera offset cannot guarantee the camera lands at a fixed world X/Y if the default camera location changes.
 
-Targets GD 2.2081, Geode SDK 5.8.2, Android 64-bit and Windows.
+Target: Geometry Dash 2.2081, Geode 5.8.2, Android64/Windows builds.

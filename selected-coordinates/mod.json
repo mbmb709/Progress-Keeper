@@ -8,9 +8,9 @@
   },
   "id": "mbmb709.selected-coordinates",
   "name": "Selected Object Coordinates",
-  "version": "v1.1.0",
+  "version": "v1.2.0",
   "developer": "mbmb709",
-  "description": "Show selected object X and Y as precise Geometry Dash units, grid blocks and grid cell numbers.",
+  "description": "Object coordinates and Camera Offset values relative to a marked reference point.",
   "tags": [
     "editor",
     "utility",
