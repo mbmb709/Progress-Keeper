@@ -1,0 +1,19 @@
+{
+  "geode": "5.8.2",
+  "gd": {
+    "win": "2.2081",
+    "android": "2.2081",
+    "mac": "2.2081",
+    "ios": "2.2081"
+  },
+  "id": "mbmb709.selected-coordinates",
+  "name": "Selected Object Coordinates",
+  "version": "v1.0.0",
+  "developer": "mbmb709",
+  "description": "Show real X and Y coordinates of the selected Geometry Dash editor object, live as you move it.",
+  "tags": [
+    "editor",
+    "utility",
+    "interface"
+  ]
+}

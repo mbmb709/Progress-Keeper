@@ -1,0 +1,45 @@
+name: Build Selected Object Coordinates
+
+on:
+  push:
+    branches: [selected-coordinates]
+    paths:
+      - 'selected-coordinates/**'
+      - '.github/workflows/build-selected-coordinates.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: Android64
+            os: ubuntu-latest
+            target: Android64
+          - name: Windows
+            os: windows-latest
+            target: Win64
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the mod
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          path: selected-coordinates
+          sdk: given
+          target: ${{ matrix.config.target }}
+          build-config: Release
+          combine: true
+
+  package:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: geode-sdk/build-geode-mod/combine@main
+        id: combine
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Selected-Object-Coordinates-Geode
+          path: ${{ steps.combine.outputs.build-output }}
