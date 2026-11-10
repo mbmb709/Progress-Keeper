@@ -8,9 +8,9 @@
   },
   "id": "mbmb709.selected-coordinates",
   "name": "Selected Object Coordinates",
-  "version": "v1.0.0",
+  "version": "v1.1.0",
   "developer": "mbmb709",
-  "description": "Show real X and Y coordinates of the selected Geometry Dash editor object, live as you move it.",
+  "description": "Show selected object X and Y as precise Geometry Dash units, grid blocks and grid cell numbers.",
   "tags": [
     "editor",
     "utility",
